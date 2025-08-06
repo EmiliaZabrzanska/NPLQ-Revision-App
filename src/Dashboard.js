@@ -1,9 +1,10 @@
+// src/Dashboard.js
 import React, { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import { auth, db } from "./firebase";
+import { useNavigate } from "react-router-dom";
+import { db } from "./firebase";
 import { doc, getDoc, deleteDoc } from "firebase/firestore";
 
-// Helper to display time as hh:mm:ss
+// Helper: Format seconds as hh:mm:ss
 function formatTime(seconds) {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
@@ -18,37 +19,48 @@ function formatTime(seconds) {
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const location = useLocation();
-  const user = auth.currentUser;
-
   const [flashcardsCompleted, setFlashcardsCompleted] = useState(0);
   const [quizzesCompleted, setQuizzesCompleted] = useState(0);
   const [secondsSpent, setSecondsSpent] = useState(0);
   const [loading, setLoading] = useState(true);
   const [resetting, setResetting] = useState(false);
 
-  // Fetch all progress when dashboard loads or on navigation
+  // Username from localStorage (login must set this!)
+  const username = localStorage.getItem("username");
+
+  // If not logged in, redirect to login/front page
   useEffect(() => {
-    if (!user) return;
+    if (!username) {
+      navigate("/login"); // or "/" if you want the front page
+    }
+  }, [username, navigate]);
+
+  // Fetch progress stats
+  useEffect(() => {
+    if (!username) return;
     setLoading(true);
-    const fetchAll = async () => {
+
+    async function fetchAll() {
       try {
+        // All progress is under /users/{username}/progress/*
+        const userRef = doc(db, "users", username);
+
         // Flashcards
-        const flashRef = doc(db, "users", user.uid, "progress", "flashcards");
+        const flashRef = doc(userRef, "progress", "flashcards");
         const flashSnap = await getDoc(flashRef);
         setFlashcardsCompleted(
           flashSnap.exists() ? (flashSnap.data().completed || []).length : 0
         );
 
         // Quizzes
-        const quizRef = doc(db, "users", user.uid, "progress", "quizzes");
+        const quizRef = doc(userRef, "progress", "quizzes");
         const quizSnap = await getDoc(quizRef);
         setQuizzesCompleted(
           quizSnap.exists() ? (quizSnap.data().completed || []).length : 0
         );
 
         // Time spent
-        const totalsRef = doc(db, "users", user.uid, "progress", "totals");
+        const totalsRef = doc(userRef, "progress", "totals");
         const totalsSnap = await getDoc(totalsRef);
         setSecondsSpent(
           totalsSnap.exists() ? totalsSnap.data().secondsSpent || 0 : 0
@@ -59,19 +71,21 @@ export default function Dashboard() {
         setSecondsSpent(0);
       }
       setLoading(false);
-    };
-    fetchAll();
-  }, [user, location]);
+    }
 
-  // Handle log out
-  const handleLogout = async () => {
-    await auth.signOut();
+    fetchAll();
+  }, [username]);
+
+  // Log out: clear localStorage and go to front page
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    localStorage.removeItem("username");
     navigate("/");
   };
 
-  // Handle reset progress
+  // Reset progress (optional)
   const handleReset = async () => {
-    if (!user) return;
+    if (!username) return;
     if (
       !window.confirm(
         "Are you sure you want to reset ALL your progress? This cannot be undone."
@@ -80,9 +94,10 @@ export default function Dashboard() {
       return;
     setResetting(true);
     try {
-      await deleteDoc(doc(db, "users", user.uid, "progress", "flashcards"));
-      await deleteDoc(doc(db, "users", user.uid, "progress", "quizzes"));
-      await deleteDoc(doc(db, "users", user.uid, "progress", "totals"));
+      const userRef = doc(db, "users", username);
+      await deleteDoc(doc(userRef, "progress", "flashcards"));
+      await deleteDoc(doc(userRef, "progress", "quizzes"));
+      await deleteDoc(doc(userRef, "progress", "totals"));
       setFlashcardsCompleted(0);
       setQuizzesCompleted(0);
       setSecondsSpent(0);
@@ -94,13 +109,14 @@ export default function Dashboard() {
     setResetting(false);
   };
 
-  if (!user || loading) return <div style={{ margin: "2rem" }}>Loading...</div>;
+  if (!username || loading)
+    return <div style={{ margin: "2rem" }}>Loading...</div>;
 
   return (
     <div style={{ maxWidth: 400, margin: "2rem auto" }}>
       <h2>Welcome to your Dashboard!</h2>
       <p>
-        <b>Logged in as:</b> {user.email}
+        <b>Logged in as:</b> {username}
       </p>
       <button onClick={handleLogout} style={{ marginBottom: 16 }}>
         Log out

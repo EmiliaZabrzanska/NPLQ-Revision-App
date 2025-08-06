@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { auth, db } from "./firebase";
+import { db } from "./firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 
@@ -118,7 +118,7 @@ const allQuizSections = Object.keys(quizSections);
 
 export default function Quizzes() {
   const navigate = useNavigate();
-  const user = auth.currentUser;
+  const username = localStorage.getItem("username");
 
   const [selectedSections, setSelectedSections] = useState(allQuizSections);
   const [completed, setCompleted] = useState([]);
@@ -129,25 +129,33 @@ export default function Quizzes() {
   const [feedback, setFeedback] = useState("");
   const [dragItems, setDragItems] = useState([]);
   const [matchDefs, setMatchDefs] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Redirect to login/front page if not logged in
+  useEffect(() => {
+    if (!username) navigate("/login");
+    // eslint-disable-next-line
+  }, [username]);
 
   // --- Time spent tracker ---
   useEffect(() => {
-    if (!user) return;
+    if (!username) return;
     let timer = setInterval(async () => {
-      const ref = doc(db, "users", user.uid, "progress", "totals");
+      const ref = doc(db, "users", username, "progress", "totals");
       const snapshot = await getDoc(ref);
       const prev = snapshot.exists() ? snapshot.data().secondsSpent || 0 : 0;
       await setDoc(ref, { secondsSpent: prev + 1 }, { merge: true });
     }, 1000);
     return () => clearInterval(timer);
-  }, [user]);
+  }, [username]);
 
   // --- Fetch progress and streak from Firestore ---
   useEffect(() => {
-    if (!user) return;
+    if (!username) return;
+    setLoading(true);
     const fetchQuizProgress = async () => {
       try {
-        const ref = doc(db, "users", user.uid, "progress", "quizzes");
+        const ref = doc(db, "users", username, "progress", "quizzes");
         const snapshot = await getDoc(ref);
         if (snapshot.exists()) {
           const data = snapshot.data();
@@ -161,6 +169,7 @@ export default function Quizzes() {
         setCompleted([]);
         setStreak(0);
       }
+      setLoading(false);
     };
     fetchQuizProgress();
     setIndex(0);
@@ -169,7 +178,7 @@ export default function Quizzes() {
     setDragItems([]);
     setMatchDefs([]);
     // eslint-disable-next-line
-  }, [user, selectedSections]);
+  }, [username, selectedSections]);
 
   // --- Gather questions ---
   const selectedQuestions = selectedSections
@@ -240,7 +249,7 @@ export default function Quizzes() {
   // --- Submission handler ---
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!user || !question) return;
+    if (!username || !question) return;
     let correct = false;
     if (question.type === "multiple-choice") {
       correct = parseInt(userAnswer, 10) === question.answer;
@@ -269,7 +278,7 @@ export default function Quizzes() {
     setCompleted(updated);
 
     // Save progress to Firestore
-    const ref = doc(db, "users", user.uid, "progress", "quizzes");
+    const ref = doc(db, "users", username, "progress", "quizzes");
     await setDoc(
       ref,
       { completed: updated, streak: newStreak },
@@ -285,6 +294,11 @@ export default function Quizzes() {
     setDragItems([]);
     setMatchDefs([]);
   };
+
+  if (loading)
+    return (
+      <div style={{ textAlign: "center", margin: "2rem" }}>Loading...</div>
+    );
 
   return (
     <div style={{ maxWidth: 540, margin: "2rem auto" }}>
@@ -496,11 +510,7 @@ export default function Quizzes() {
       )}
 
       <div style={{ marginTop: 32 }}>
-        <button
-          onClick={() =>
-            navigate("/dashboard", { state: { refresh: Date.now() } })
-          }
-        >
+        <button onClick={() => navigate("/dashboard")}>
           Back to Dashboard
         </button>
       </div>

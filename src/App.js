@@ -1,27 +1,64 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
 import FrontPage from "./FrontPage";
 import AuthForm from "./AuthForm";
 import Dashboard from "./Dashboard";
+import AdminPanel from "./AdminPanel";
 import Flashcards from "./Flashcards";
 import Quizzes from "./Quizzes";
-import AdminPanel from "./AdminPanel";
-import AdminLogin from "./AdminLogin";
 
-function App() {
+function ProtectedRoute({ children, adminOnly = false }) {
+  const user = JSON.parse(localStorage.getItem("user"));
+  if (!user) return <Navigate to="/login" />;
+  if (adminOnly && user.role !== "admin") return <Navigate to="/login" />;
+  return children;
+}
+
+export default function App() {
   return (
     <Router>
       <Routes>
         <Route path="/" element={<FrontPage />} />
         <Route path="/login" element={<AuthForm />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/flashcards" element={<Flashcards />} />
-        <Route path="/quizzes" element={<Quizzes />} />
-        <Route path="/admin" element={<AdminPanel />} />
-        <Route path="/admin-login" element={<AdminLogin />} />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute adminOnly>
+              <AdminPanel />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/flashcards"
+          element={
+            <ProtectedRoute>
+              <Flashcards />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/quizzes"
+          element={
+            <ProtectedRoute>
+              <Quizzes />
+            </ProtectedRoute>
+          }
+        />
+        {/* Add more routes as needed */}
       </Routes>
     </Router>
   );
 }
-
-export default App;

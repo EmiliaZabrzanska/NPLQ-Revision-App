@@ -1,81 +1,73 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { auth } from "./firebase";
-import {
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-} from "firebase/auth";
+import { useNavigate, useLocation } from "react-router-dom";
+import { db } from "./firebase";
+import { doc, getDoc } from "firebase/firestore";
 
 export default function AuthForm() {
-  const [isRegister, setIsRegister] = useState(false);
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  const location = useLocation();
+  const adminOnly = new URLSearchParams(location.search).get("admin");
 
-  const handleSubmit = async (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
     try {
-      if (isRegister) {
-        await createUserWithEmailAndPassword(auth, email, password);
-        navigate("/dashboard");
-      } else {
-        await signInWithEmailAndPassword(auth, email, password);
-        navigate("/dashboard");
+      const uname = username.trim().toLowerCase();
+      const userRef = doc(db, "users", uname);
+      const userSnap = await getDoc(userRef);
+      if (!userSnap.exists()) {
+        setError("Invalid username or password.");
+        return;
       }
-    } catch (err) {
-      setError(err.message);
+      const user = userSnap.data();
+      if (user.password !== password) {
+        setError("Invalid username or password.");
+        return;
+      }
+      if (adminOnly && user.role !== "admin") {
+        setError("Not an admin account.");
+        return;
+      }
+      localStorage.setItem("user", JSON.stringify(user));
+      localStorage.setItem("username", uname);
+      navigate(user.role === "admin" ? "/admin" : "/dashboard");
+    } catch {
+      setError("Login failed. Try again.");
     }
   };
 
   return (
-    <div style={{ maxWidth: 300, margin: "2rem auto" }}>
-      <h2>{isRegister ? "Register" : "Login"}</h2>
-      <form onSubmit={handleSubmit}>
+    <div style={{ maxWidth: 340, margin: "4rem auto" }}>
+      <h2>{adminOnly ? "Admin Login" : "User Login"}</h2>
+      <form onSubmit={handleLogin}>
         <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Username"
+          value={username}
           required
+          onChange={(e) => setUsername(e.target.value)}
           style={{ width: "100%", marginBottom: 8, padding: 8 }}
         />
         <input
           type="password"
           placeholder="Password"
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
           required
+          onChange={(e) => setPassword(e.target.value)}
           style={{ width: "100%", marginBottom: 8, padding: 8 }}
         />
-        <button style={{ width: "100%", padding: 8 }} type="submit">
-          {isRegister ? "Register" : "Login"}
+        <button style={{ width: "100%", padding: 10 }} type="submit">
+          Login
         </button>
-        <div style={{ marginTop: 8 }}>
-          <button type="button" onClick={() => setIsRegister((x) => !x)}>
-            {isRegister ? "Have an account? Login" : "No account? Register"}
-          </button>
-        </div>
-        {error && <p style={{ color: "red" }}>{error}</p>}
       </form>
-      <div style={{ marginTop: 14, textAlign: "center" }}>
-        <button
-          type="button"
-          style={{
-            background: "#eee",
-            color: "#222",
-            border: "none",
-            borderRadius: 6,
-            padding: "0.5em 1.5em",
-            fontWeight: "bold",
-            cursor: "pointer",
-          }}
-          onClick={() => navigate("/")}
-        >
+      <div style={{ marginTop: 14 }}>
+        <button onClick={() => navigate("/")} style={{ width: "100%" }}>
           Back to Front Page
         </button>
       </div>
+      {error && <div style={{ color: "red", marginTop: 10 }}>{error}</div>}
     </div>
   );
 }

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { auth, db } from "./firebase";
+import { db } from "./firebase";
 import {
   collection,
   doc,
@@ -8,11 +7,9 @@ import {
   setDoc,
   addDoc,
   deleteDoc,
-  updateDoc,
 } from "firebase/firestore";
-import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { useNavigate } from "react-router-dom";
 
-// --- Helper to fetch all users and teams ---
 const fetchUsersAndTeams = async () => {
   const usersSnapshot = await getDocs(collection(db, "users"));
   const users = [];
@@ -26,22 +23,20 @@ const fetchUsersAndTeams = async () => {
 };
 
 export default function AdminPanel() {
-  const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const [form, setForm] = useState({
     username: "",
-    email: "",
     password: "",
     teamId: "",
     role: "student",
   });
   const [teamForm, setTeamForm] = useState({ name: "" });
   const [message, setMessage] = useState("");
+  const navigate = useNavigate();
 
-  // --- Fetch users and teams on load & when updated ---
   const reloadData = async () => {
     setLoading(true);
     const { users, teams } = await fetchUsersAndTeams();
@@ -59,42 +54,19 @@ export default function AdminPanel() {
     e.preventDefault();
     setMessage("Creating user...");
     try {
-      // 1. Create in Firebase Auth
-      const cred = await createUserWithEmailAndPassword(
-        auth,
-        form.email,
-        form.password
-      );
-      // 2. Set profile (username)
-      await updateProfile(cred.user, { displayName: form.username });
-      // 3. Add to Firestore
-      await setDoc(doc(db, "users", cred.user.uid), {
-        username: form.username,
-        email: form.email,
+      const uname = form.username.trim().toLowerCase();
+      // Check for duplicate
+      const existing = users.find((u) => u.uid === uname);
+      if (existing) throw new Error("Username already exists!");
+      await setDoc(doc(db, "users", uname), {
+        username: uname,
+        password: form.password,
         teamId: form.teamId || "",
         role: form.role,
       });
-
-      // 4. Assign to team in Firestore
-      if (form.teamId) {
-        // Reload teams so state is up-to-date
-        const teamRef = doc(db, "teams", form.teamId);
-        // Fetch the latest team members (avoid using potentially stale state)
-        const teamDoc = await getDocs(collection(db, "teams"));
-        let selectedTeam = null;
-        teamDoc.forEach((t) => {
-          if (t.id === form.teamId) selectedTeam = t.data();
-        });
-        const currentMembers = selectedTeam?.members || [];
-        await updateDoc(teamRef, {
-          members: [...currentMembers, cred.user.uid],
-        });
-      }
-
       setMessage("User created!");
       setForm({
         username: "",
-        email: "",
         password: "",
         teamId: "",
         role: "student",
@@ -111,14 +83,6 @@ export default function AdminPanel() {
       return;
     try {
       await deleteDoc(doc(db, "users", uid));
-      // Remove from all team members arrays
-      for (const team of teams) {
-        if (team.members && team.members.includes(uid)) {
-          await updateDoc(doc(db, "teams", team.id), {
-            members: team.members.filter((m) => m !== uid),
-          });
-        }
-      }
       setMessage("User deleted.");
       await reloadData();
     } catch (err) {
@@ -156,23 +120,31 @@ export default function AdminPanel() {
     }
   };
 
+  // --- Logout ---
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    localStorage.removeItem("username");
+    navigate("/");
+  };
+
   return (
     <div style={{ maxWidth: 720, margin: "2rem auto" }}>
       <h2>Admin Panel</h2>
       <button
+        onClick={handleLogout}
         style={{
-          marginBottom: 16,
-          background: "#222",
+          position: "absolute",
+          top: 18,
+          right: 18,
+          padding: "7px 18px",
+          background: "#f44336",
           color: "#fff",
           border: "none",
-          borderRadius: 6,
-          padding: "0.5em 1.5em",
+          borderRadius: 5,
           fontWeight: "bold",
-          cursor: "pointer",
         }}
-        onClick={() => navigate("/")}
       >
-        Log out
+        Log Out
       </button>
       {loading && <p>Loading...</p>}
       <p style={{ color: "green" }}>{message}</p>
@@ -195,13 +167,6 @@ export default function AdminPanel() {
             placeholder="Username"
             value={form.username}
             onChange={(e) => setForm({ ...form, username: e.target.value })}
-          />
-          <input
-            required
-            type="email"
-            placeholder="Email"
-            value={form.email}
-            onChange={(e) => setForm({ ...form, email: e.target.value })}
           />
           <input
             required
@@ -245,7 +210,6 @@ export default function AdminPanel() {
           <thead>
             <tr>
               <th>Username</th>
-              <th>Email</th>
               <th>Team</th>
               <th>Role</th>
               <th>Delete</th>
@@ -255,7 +219,6 @@ export default function AdminPanel() {
             {users.map((u) => (
               <tr key={u.uid}>
                 <td>{u.username}</td>
-                <td>{u.email}</td>
                 <td>{teams.find((t) => t.id === u.teamId)?.name || ""}</td>
                 <td>{u.role}</td>
                 <td>
@@ -289,7 +252,6 @@ export default function AdminPanel() {
           <thead>
             <tr>
               <th>Team Name</th>
-              <th>Members</th>
               <th>Delete</th>
             </tr>
           </thead>
@@ -297,13 +259,6 @@ export default function AdminPanel() {
             {teams.map((team) => (
               <tr key={team.id}>
                 <td>{team.name}</td>
-                <td>
-                  {team.members
-                    ?.map(
-                      (uid) => users.find((u) => u.uid === uid)?.username || uid
-                    )
-                    .join(", ")}
-                </td>
                 <td>
                   <button
                     onClick={() => handleDeleteTeam(team.id)}
