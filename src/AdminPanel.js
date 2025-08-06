@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { auth, db } from "./firebase";
 import {
   collection,
@@ -25,6 +26,7 @@ const fetchUsersAndTeams = async () => {
 };
 
 export default function AdminPanel() {
+  const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -157,6 +159,21 @@ export default function AdminPanel() {
   return (
     <div style={{ maxWidth: 720, margin: "2rem auto" }}>
       <h2>Admin Panel</h2>
+      <button
+        style={{
+          marginBottom: 16,
+          background: "#222",
+          color: "#fff",
+          border: "none",
+          borderRadius: 6,
+          padding: "0.5em 1.5em",
+          fontWeight: "bold",
+          cursor: "pointer",
+        }}
+        onClick={() => navigate("/")}
+      >
+        Log out
+      </button>
       {loading && <p>Loading...</p>}
       <p style={{ color: "green" }}>{message}</p>
 

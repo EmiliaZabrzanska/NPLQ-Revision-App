@@ -15,7 +15,6 @@ export default function AuthForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("handleSubmit fired, isRegister:", isRegister);
     setError("");
     try {
       if (isRegister) {
@@ -60,6 +59,23 @@ export default function AuthForm() {
         </div>
         {error && <p style={{ color: "red" }}>{error}</p>}
       </form>
+      <div style={{ marginTop: 14, textAlign: "center" }}>
+        <button
+          type="button"
+          style={{
+            background: "#eee",
+            color: "#222",
+            border: "none",
+            borderRadius: 6,
+            padding: "0.5em 1.5em",
+            fontWeight: "bold",
+            cursor: "pointer",
+          }}
+          onClick={() => navigate("/")}
+        >
+          Back to Front Page
+        </button>
+      </div>
     </div>
   );
 }

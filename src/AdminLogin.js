@@ -1,3 +1,4 @@
+// src/AdminLogin.js
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -75,6 +76,24 @@ export default function AdminLogin() {
           </button>
           {error && <div style={{ color: "red", marginTop: 12 }}>{error}</div>}
         </form>
+        {/* --- Back to Front Page Button --- */}
+        <div style={{ marginTop: 16, textAlign: "center" }}>
+          <button
+            type="button"
+            style={{
+              background: "#eee",
+              color: "#222",
+              border: "none",
+              borderRadius: 6,
+              padding: "0.5em 1.5em",
+              fontWeight: "bold",
+              cursor: "pointer",
+            }}
+            onClick={() => navigate("/")}
+          >
+            Back to Front Page
+          </button>
+        </div>
       </div>
     </div>
   );
