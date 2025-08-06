@@ -24,7 +24,10 @@ yarn-error.log*
 
 node_modules/
 .env
+firebase-debug.log
+*.log
 .DS_Store
 .vscode/
 build/
 dist/
+
