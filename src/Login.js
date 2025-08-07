@@ -1,11 +1,11 @@
-// src/AdminLogin.js
+// src/Login.js
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "./firebase";
 import "./index.css";
 
-export default function AdminLogin() {
+export default function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -27,8 +27,8 @@ export default function AdminLogin() {
       setError("Invalid username or password.");
       return;
     }
-    if (userData.role !== "admin") {
-      setError("You are not an admin.");
+    if (userData.role === "admin") {
+      setError("Please use the Admin Login page.");
       return;
     }
     // Store in localStorage
@@ -36,7 +36,7 @@ export default function AdminLogin() {
       "user",
       JSON.stringify({ ...userData, uid: userDoc.id })
     );
-    navigate("/admin");
+    navigate("/dashboard");
   };
 
   return (
@@ -46,7 +46,7 @@ export default function AdminLogin() {
         className="card center-container"
         style={{ width: 380, textAlign: "center" }}
       >
-        <h2 style={{ marginBottom: 24, fontWeight: 600 }}>Admin Login</h2>
+        <h2 style={{ marginBottom: 24, fontWeight: 600 }}>User Login</h2>
         <input
           className="input"
           placeholder="Username"
@@ -69,7 +69,7 @@ export default function AdminLogin() {
           </div>
         )}
         <button className="button-red" type="submit" style={{ width: "100%" }}>
-          Login as Admin
+          Login
         </button>
         <button
           className="button-blue"

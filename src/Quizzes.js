@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { db } from "./firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
-import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
+import "./index.css";
 
 // --- Helper: Shuffle array (Fisher-Yates) ---
 function shuffle(array) {
@@ -118,7 +119,12 @@ const allQuizSections = Object.keys(quizSections);
 
 export default function Quizzes() {
   const navigate = useNavigate();
-  const username = localStorage.getItem("username");
+  const userObj = JSON.parse(localStorage.getItem("user") || "{}");
+  const username = userObj.username;
+
+  useEffect(() => {
+    if (!username) navigate("/login");
+  }, [username, navigate]);
 
   const [selectedSections, setSelectedSections] = useState(allQuizSections);
   const [completed, setCompleted] = useState([]);
@@ -130,12 +136,6 @@ export default function Quizzes() {
   const [dragItems, setDragItems] = useState([]);
   const [matchDefs, setMatchDefs] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  // Redirect to login/front page if not logged in
-  useEffect(() => {
-    if (!username) navigate("/login");
-    // eslint-disable-next-line
-  }, [username]);
 
   // --- Time spent tracker ---
   useEffect(() => {
@@ -209,13 +209,14 @@ export default function Quizzes() {
 
   // --- Setup for drag and drop/matching ---
   useEffect(() => {
-    if (question && question.type === "drag-and-drop") {
+    if (!question) return;
+    if (question.type === "drag-and-drop") {
       const shuffled = shuffle(
         question.options.map((text, idx) => ({ id: `${idx}`, text }))
       );
       setDragItems(shuffled);
       setMatchDefs([]);
-    } else if (question && question.type === "matching") {
+    } else if (question.type === "matching") {
       const defs = shuffle(
         question.pairs.map((pair, idx) => ({
           id: `${idx}`,
@@ -228,6 +229,7 @@ export default function Quizzes() {
       setDragItems([]);
       setMatchDefs([]);
     }
+    // eslint-disable-next-line
   }, [index, question]);
 
   // --- Drag-and-drop handler for order or matching ---
@@ -297,85 +299,187 @@ export default function Quizzes() {
 
   if (loading)
     return (
-      <div style={{ textAlign: "center", margin: "2rem" }}>Loading...</div>
+      <div style={{ minHeight: "100vh", background: "var(--pale-red)" }}>
+        <div className="center-container" style={{ height: "100vh" }}>
+          <span style={{ fontSize: 22, color: "#999" }}>Loading...</span>
+        </div>
+      </div>
     );
 
   return (
-    <div style={{ maxWidth: 540, margin: "2rem auto" }}>
-      <h2>Quizzes</h2>
-      <div style={{ marginBottom: 12 }}>
-        <b>Choose Sections:</b>
-        <div style={{ margin: "8px 0" }}>
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "var(--pale-red)",
+        fontFamily: "'Source Sans Pro', Arial, sans-serif",
+        display: "flex",
+      }}
+    >
+      {/* Left sidebar: section selection */}
+      <div style={{ minWidth: 170, padding: "32px 12px" }}>
+        <div style={{ fontWeight: 600, fontSize: 19, marginBottom: 12 }}>
+          Sections
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
           {allQuizSections.map((section) => (
-            <label key={section} style={{ marginRight: 14 }}>
+            <label
+              key={section}
+              style={{
+                marginBottom: 4,
+                color: "#333",
+                fontSize: 16,
+                fontWeight: 500,
+                background: "var(--pale-blue)",
+                padding: "7px 12px",
+                borderRadius: 8,
+              }}
+            >
               <input
                 type="checkbox"
                 value={section}
                 checked={selectedSections.includes(section)}
                 onChange={handleSectionChange}
+                style={{
+                  accentColor: "var(--pale-blue)",
+                  marginRight: 8,
+                  verticalAlign: "middle",
+                }}
               />
               {section}
             </label>
           ))}
         </div>
       </div>
-
-      {total > 0 && question ? (
-        <>
-          <div style={{ marginBottom: 12 }}>
-            <span>
-              Question {current} of {total}
-            </span>
-            <div style={{ marginTop: 4, fontSize: "0.95em", color: "#666" }}>
-              Completed: {completed.length} | Streak: {streak}
-            </div>
-          </div>
-          <form onSubmit={handleSubmit}>
+      {/* Main content */}
+      <div
+        style={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        {total > 0 && question ? (
+          <>
+            {/* Progress bar and count for selected questions */}
             <div
               style={{
+                fontWeight: 500,
+                margin: "0 0 18px 0",
+                fontSize: "1.1rem",
+                textAlign: "center",
+              }}
+            >
+              Question {current} of {total}
+              <div
+                style={{
+                  background: "var(--pale-blue)",
+                  height: 9,
+                  borderRadius: 6,
+                  margin: "6px auto 0 auto",
+                  width: 220,
+                  position: "relative",
+                }}
+              >
+                <div
+                  style={{
+                    background: "#0099ff",
+                    width: `${(current / total) * 100}%`,
+                    height: "100%",
+                    borderRadius: 6,
+                    transition: "width 0.3s",
+                  }}
+                />
+              </div>
+              <div style={{ marginTop: 5, fontSize: "0.98em", color: "#555" }}>
+                Completed: {completed.length} | Streak: {streak}
+              </div>
+            </div>
+            {/* Main quiz card */}
+            <form
+              onSubmit={handleSubmit}
+              style={{
+                background: "#fff",
                 border: "1px solid #ccc",
-                borderRadius: 8,
-                padding: 24,
-                minHeight: 80,
-                marginBottom: 16,
+                borderRadius: 16,
+                padding: 28,
+                minHeight: 120,
+                minWidth: 370,
+                maxWidth: 540,
+                marginBottom: 20,
+                boxShadow: "0 4px 14px 0 rgba(150,140,255,0.05)",
+                fontSize: 21,
+                textAlign: "center",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+                alignItems: "center",
               }}
             >
               <b>Q:</b> {question.question}
-              <br />
+              {/* --- MULTIPLE CHOICE --- */}
               {question.type === "multiple-choice" && (
-                <div style={{ marginTop: 8 }}>
+                <div style={{ marginTop: 14, width: "100%" }}>
                   {question.options.map((opt, idx) => (
-                    <label key={idx} style={{ display: "block" }}>
+                    <label
+                      key={idx}
+                      style={{
+                        display: "block",
+                        textAlign: "left",
+                        marginBottom: 4,
+                        fontWeight: 500,
+                        fontSize: 17,
+                      }}
+                    >
                       <input
                         type="radio"
                         name="mc"
                         value={idx}
                         checked={String(userAnswer) === String(idx)}
                         onChange={(e) => setUserAnswer(e.target.value)}
+                        style={{
+                          marginRight: 8,
+                          accentColor: "var(--pale-blue)",
+                        }}
                       />
                       {opt}
                     </label>
                   ))}
                 </div>
               )}
+              {/* --- FILL IN BLANK --- */}
               {question.type === "fill-in-the-blank" && (
                 <input
-                  style={{ marginTop: 8, width: "100%" }}
+                  style={{
+                    marginTop: 18,
+                    width: "100%",
+                    fontSize: 17,
+                    padding: 7,
+                    borderRadius: 8,
+                    border: "1px solid #bacffe",
+                    background: "var(--pale-blue)",
+                  }}
                   type="text"
                   value={userAnswer}
                   onChange={(e) => setUserAnswer(e.target.value)}
                   placeholder="Type your answer"
                 />
               )}
-              {question.type === "drag-and-drop" && dragItems.length > 0 && (
-                <div style={{ marginTop: 12 }}>
-                  <small>Drag to reorder:</small>
+              {/* --- DRAG AND DROP ORDER --- */}
+              {question.type === "drag-and-drop" && (
+                <div style={{ width: "100%", marginTop: 18 }}>
                   <DragDropContext onDragEnd={handleDragEnd}>
-                    <Droppable droppableId="droppable">
+                    <Droppable droppableId="dnd-list">
                       {(provided) => (
                         <div
-                          {...provided.droppableProps}
                           ref={provided.innerRef}
+                          {...provided.droppableProps}
+                          style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 8,
+                          }}
                         >
                           {dragItems.map((item, idx) => (
                             <Draggable
@@ -389,12 +493,15 @@ export default function Quizzes() {
                                   {...provided.draggableProps}
                                   {...provided.dragHandleProps}
                                   style={{
-                                    background: snapshot.isDragging
-                                      ? "#d3e7fd"
-                                      : "#f0f0f0",
-                                    marginBottom: 8,
-                                    padding: 10,
-                                    borderRadius: 5,
+                                    background: "var(--pale-blue)",
+                                    padding: 13,
+                                    borderRadius: 8,
+                                    fontSize: 17,
+                                    fontWeight: 500,
+                                    marginBottom: 2,
+                                    boxShadow: snapshot.isDragging
+                                      ? "0 2px 8px rgba(80,80,255,0.12)"
+                                      : "none",
                                     ...provided.draggableProps.style,
                                   }}
                                 >
@@ -410,109 +517,165 @@ export default function Quizzes() {
                   </DragDropContext>
                 </div>
               )}
-              {question.type === "matching" && matchDefs.length > 0 && (
-                <div style={{ marginTop: 12 }}>
-                  <small>Drag each definition to match the correct term:</small>
-                  <div style={{ display: "flex", gap: 24, marginTop: 12 }}>
-                    <div>
-                      <b>Term</b>
-                      <ul style={{ listStyle: "none", padding: 0 }}>
-                        {question.pairs.map((pair, idx) => (
-                          <li
-                            key={idx}
-                            style={{
-                              padding: "8px 0",
-                              borderBottom: "1px solid #eee",
-                              minHeight: 40,
-                            }}
-                          >
-                            {pair.left}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                    <div>
-                      <b>Definition</b>
-                      <DragDropContext onDragEnd={handleDragEnd}>
-                        <Droppable droppableId="defs">
-                          {(provided) => (
-                            <ul
-                              {...provided.droppableProps}
-                              ref={provided.innerRef}
-                              style={{ listStyle: "none", padding: 0 }}
-                            >
-                              {matchDefs.map((def, idx) => (
-                                <Draggable
-                                  key={def.id}
-                                  draggableId={def.id}
-                                  index={idx}
-                                >
-                                  {(provided, snapshot) => (
-                                    <li
-                                      ref={provided.innerRef}
-                                      {...provided.draggableProps}
-                                      {...provided.dragHandleProps}
-                                      style={{
-                                        marginBottom: 8,
-                                        background: snapshot.isDragging
-                                          ? "#d3e7fd"
-                                          : "#f0f0f0",
-                                        padding: 10,
-                                        borderRadius: 5,
-                                        minHeight: 40,
-                                        ...provided.draggableProps.style,
-                                      }}
-                                    >
-                                      {def.text}
-                                    </li>
-                                  )}
-                                </Draggable>
-                              ))}
-                              {provided.placeholder}
-                            </ul>
-                          )}
-                        </Droppable>
-                      </DragDropContext>
-                    </div>
+              {/* --- MATCHING QUESTIONS (GRID) --- */}
+              {question.type === "matching" && (
+                <div style={{ width: "100%", marginTop: 18 }}>
+                  <div
+                    style={{
+                      textAlign: "center",
+                      fontSize: 16,
+                      color: "#444",
+                      marginBottom: 8,
+                    }}
+                  >
+                    Drag the right column to match definitions:
                   </div>
+                  <DragDropContext onDragEnd={handleDragEnd}>
+                    <Droppable droppableId="matching" direction="vertical">
+                      {(provided) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.droppableProps}
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: "180px 1fr",
+                            gap: "12px",
+                            marginTop: 8,
+                            width: 470,
+                            justifyContent: "center",
+                          }}
+                        >
+                          {question.pairs.map((pair, idx) => (
+                            <React.Fragment key={pair.left}>
+                              {/* Acronym/term cell */}
+                              <div
+                                style={{
+                                  background: "#fff",
+                                  borderRadius: 7,
+                                  border: "1px solid #eee",
+                                  fontWeight: 700,
+                                  fontSize: 20,
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  height: 64,
+                                  minHeight: 64,
+                                  textAlign: "center",
+                                }}
+                              >
+                                {pair.left}
+                              </div>
+                              {/* Draggable definition cell */}
+                              <Draggable
+                                draggableId={matchDefs[idx]?.id}
+                                index={idx}
+                                key={matchDefs[idx]?.id}
+                              >
+                                {(provided, snapshot) => (
+                                  <div
+                                    ref={provided.innerRef}
+                                    {...provided.draggableProps}
+                                    {...provided.dragHandleProps}
+                                    style={{
+                                      background: "var(--pale-blue)",
+                                      borderRadius: 7,
+                                      fontSize: 17,
+                                      minHeight: 64,
+                                      height: "100%",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      padding: "0 10px",
+                                      boxShadow: snapshot.isDragging
+                                        ? "0 2px 8px rgba(80,80,255,0.08)"
+                                        : "none",
+                                      ...provided.draggableProps.style,
+                                    }}
+                                  >
+                                    {matchDefs[idx]?.text}
+                                  </div>
+                                )}
+                              </Draggable>
+                            </React.Fragment>
+                          ))}
+                          {provided.placeholder}
+                        </div>
+                      )}
+                    </Droppable>
+                  </DragDropContext>
                 </div>
               )}
-            </div>
-            <button
-              type="submit"
-              disabled={
-                (!userAnswer &&
-                  question.type !== "drag-and-drop" &&
-                  question.type !== "matching") ||
-                (question.type === "drag-and-drop" && dragItems.length === 0) ||
-                (question.type === "matching" && matchDefs.length === 0)
-              }
-            >
-              Submit Answer
-            </button>
-          </form>
-          {feedback && (
+              {feedback && (
+                <div
+                  style={{
+                    marginTop: 18,
+                    color: feedback === "Correct!" ? "green" : "red",
+                    fontWeight: 600,
+                    fontSize: 19,
+                  }}
+                >
+                  {feedback}
+                </div>
+              )}
+            </form>
+            {/* All buttons in a row */}
             <div
               style={{
-                marginTop: 8,
-                color: feedback === "Correct!" ? "green" : "red",
+                display: "flex",
+                flexDirection: "row",
+                justifyContent: "center",
+                gap: 18,
+                marginBottom: 14,
               }}
             >
-              {feedback}
+              <button
+                className="button-blue"
+                type="submit"
+                onClick={handleSubmit}
+                disabled={
+                  (!userAnswer &&
+                    question.type !== "drag-and-drop" &&
+                    question.type !== "matching") ||
+                  (question.type === "drag-and-drop" && false) ||
+                  (question.type === "matching" && false)
+                }
+              >
+                Submit Answer
+              </button>
+              <button
+                className="button-red"
+                type="button"
+                onClick={handleNext}
+                style={{ minWidth: 120 }}
+              >
+                Next Question
+              </button>
             </div>
-          )}
-          <div style={{ marginTop: 16 }}>
-            <button onClick={handleNext}>Next Question</button>
+          </>
+        ) : (
+          <div
+            style={{
+              background: "#fff",
+              borderRadius: 14,
+              padding: 32,
+              textAlign: "center",
+              color: "#666",
+              fontSize: 18,
+            }}
+          >
+            No quiz questions in selected section(s).
           </div>
-        </>
-      ) : (
-        <div>No quiz questions in selected section(s).</div>
-      )}
-
-      <div style={{ marginTop: 32 }}>
-        <button onClick={() => navigate("/dashboard")}>
-          Back to Dashboard
-        </button>
+        )}
+        {/* Return button */}
+        <div style={{ marginTop: 34 }}>
+          <button
+            className="button-red"
+            style={{ width: 210 }}
+            onClick={() => navigate("/dashboard")}
+          >
+            Back to Dashboard
+          </button>
+        </div>
       </div>
     </div>
   );

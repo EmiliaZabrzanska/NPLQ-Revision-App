@@ -1,1 +1,89 @@
+@import url('https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,600,700&display=swap');
 
+:root {
+  --pale-red: #ff9e99;
+  --pale-blue: #bacffe;
+  --white: #fff;
+}
+
+body, html, #root {
+  font-family: 'Source Sans Pro', Arial, sans-serif;
+  background: #fff;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;}
+
+  .center-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.button-red {
+  background: var(--pale-red);
+  border: none;
+  color: #333;
+  padding: 12px 28px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 1.1rem;
+  margin: 8px 0;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.button-red:hover { background: #f88984; }
+
+.button-blue {
+  background: var(--pale-blue);
+  border: none;
+  color: #222;
+  padding: 12px 28px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 1.1rem;
+  margin: 8px 0;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.button-blue:hover { background: #a3b7e0; }
+
+.input,
+select,
+textarea {
+  width: 300px;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  margin: 8px 0;
+  background: #fff;
+  font-size: 1.05rem;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.card {
+  background: var(--white);
+  border-radius: 16px;
+  box-shadow: 0 4px 24px 0 rgba(44,54,67,0.07), 0 1.5px 3.5px 0 rgba(44,54,67,0.06);
+  padding: 32px 24px;
+  margin: 16px 0;
+  max-width: 450px;
+  width: 100%;
+}
+.progress-bar-bg {
+  background: var(--pale-blue);
+  border-radius: 8px;
+  height: 10px;
+  margin: 8px 0;
+  width: 100%;
+}
+.progress-bar-fill {
+  background: #355bcf;
+  height: 100%;
+  border-radius: 8px;
+  transition: width 0.4s;
+}
+.checkbox-blue input[type="checkbox"] {
+  accent-color: var(--pale-blue);
+}

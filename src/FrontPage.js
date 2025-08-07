@@ -1,30 +1,39 @@
+// src/FrontPage.js
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import "./index.css"; // Import your CSS
 
 export default function FrontPage() {
   const navigate = useNavigate();
   return (
     <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "#eaf6ff",
-      }}
+      className="center-container"
+      style={{ height: "100vh", background: "#fff" }}
     >
-      <h1>Welcome to your NPLQ Revision App</h1>
-      <div style={{ marginTop: 32 }}>
+      <div style={{ marginBottom: 40 }}>
+        <h1
+          style={{
+            fontSize: "2.8rem",
+            fontWeight: 700,
+            color: "#222",
+            textAlign: "center",
+          }}
+        >
+          Welcome to your NPLQ Revision App
+        </h1>
+      </div>
+      <div className="center-container">
         <button
+          className="button-red"
+          style={{ width: 250 }}
           onClick={() => navigate("/login")}
-          style={{ fontSize: 18, padding: "12px 28px", marginRight: 14 }}
         >
           User Login
         </button>
         <button
-          onClick={() => navigate("/login?admin=1")}
-          style={{ fontSize: 18, padding: "12px 28px" }}
+          className="button-red"
+          style={{ width: 250 }}
+          onClick={() => navigate("/adminlogin")}
         >
           Admin Login
         </button>

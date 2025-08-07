@@ -2,8 +2,9 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { db } from "./firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
+import "./index.css";
 
-// --- Flashcard Data ---
+// Example flashcard data
 const flashcardSections = {
   "Section 1": [
     {
@@ -42,22 +43,19 @@ const allSections = Object.keys(flashcardSections);
 
 export default function Flashcards() {
   const navigate = useNavigate();
-  const username = localStorage.getItem("username");
+  const userObj = JSON.parse(localStorage.getItem("user") || "{}");
+  const username = userObj.username;
+  useEffect(() => {
+    if (!username) navigate("/login");
+  }, [username, navigate]);
 
   const [selectedSections, setSelectedSections] = useState(allSections);
   const [index, setIndex] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
-
   const [completed, setCompleted] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Redirect to login/front page if not logged in
-  useEffect(() => {
-    if (!username) navigate("/login");
-    // eslint-disable-next-line
-  }, [username]);
-
-  // Timer: increment total time spent in Firestore every second
+  // Timer for total time spent
   useEffect(() => {
     if (!username) return;
     let timer = setInterval(async () => {
@@ -163,28 +161,88 @@ export default function Flashcards() {
 
   if (loading)
     return (
-      <div style={{ textAlign: "center", margin: "2rem" }}>Loading...</div>
+      <div style={{ minHeight: "100vh", background: "var(--pale-red)" }}>
+        <div className="center-container" style={{ height: "100vh" }}>
+          <span style={{ fontSize: 22, color: "#999" }}>Loading...</span>
+        </div>
+      </div>
     );
 
   return (
-    <div style={{ maxWidth: 420, margin: "2rem auto" }}>
-      <h2>Flashcards</h2>
-      {/* --- Per-section progress bars --- */}
-      <div>
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "var(--pale-red)",
+        fontFamily: "'Source Sans Pro', Arial, sans-serif",
+        display: "flex",
+      }}
+    >
+      {/* Left sidebar: section selection */}
+      <div style={{ minWidth: 170, padding: "32px 12px" }}>
+        <div style={{ fontWeight: 600, fontSize: 19, marginBottom: 12 }}>
+          Sections
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+          {allSections.map((section) => (
+            <label
+              key={section}
+              style={{
+                marginBottom: 4,
+                color: "#333",
+                fontSize: 16,
+                fontWeight: 500,
+                background: "var(--pale-blue)",
+                padding: "7px 12px",
+                borderRadius: 8,
+              }}
+            >
+              <input
+                type="checkbox"
+                value={section}
+                checked={selectedSections.includes(section)}
+                onChange={handleSectionChange}
+                style={{
+                  accentColor: "var(--pale-blue)",
+                  marginRight: 8,
+                  verticalAlign: "middle",
+                }}
+              />
+              {section}
+            </label>
+          ))}
+        </div>
+      </div>
+      {/* Top right: progress bars */}
+      <div
+        style={{
+          position: "absolute",
+          right: 28,
+          top: 30,
+          minWidth: 220,
+          zIndex: 5,
+        }}
+      >
         {allSections.map((section) => {
           const p = sectionProgress[section];
           const percent = Math.round((p.completed / p.total) * 100);
           return (
-            <div key={section} style={{ marginBottom: 8 }}>
-              <div style={{ fontSize: "0.98em" }}>
-                {section}: {p.completed} / {p.total} completed
+            <div key={section} style={{ marginBottom: 14 }}>
+              <div style={{ fontSize: "0.98em", marginBottom: 2 }}>
+                {section}: {p.completed} / {p.total}
               </div>
-              <div style={{ background: "#eee", height: 8, borderRadius: 6 }}>
+              <div
+                style={{
+                  background: "var(--pale-blue)",
+                  height: 10,
+                  borderRadius: 6,
+                }}
+              >
                 <div
                   style={{
-                    background: "#4caf50",
+                    background: "#6274ce",
                     width: `${percent}%`,
                     height: "100%",
+                    borderRadius: 6,
                     transition: "width 0.3s",
                   }}
                 />
@@ -193,103 +251,142 @@ export default function Flashcards() {
           );
         })}
       </div>
-
-      {/* --- Section selection --- */}
-      <div style={{ margin: "18px 0 12px 0" }}>
-        <b>Choose Sections:</b>
-        <div style={{ margin: "8px 0" }}>
-          {allSections.map((section) => (
-            <label key={section} style={{ marginRight: 14 }}>
-              <input
-                type="checkbox"
-                value={section}
-                checked={selectedSections.includes(section)}
-                onChange={handleSectionChange}
-              />
-              {section}
-            </label>
-          ))}
-        </div>
-      </div>
-
-      {/* --- Flashcard display --- */}
-      {total > 0 && card ? (
-        <>
-          {/* Progress bar and count for selected cards */}
-          <div style={{ margin: "12px 0 8px 0" }}>
-            <span>
-              Card {current} of {total}
-            </span>
+      {/* Main content */}
+      <div
+        style={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        {total > 0 && card ? (
+          <>
+            {/* Progress bar and count for selected cards */}
             <div
               style={{
-                background: "#eee",
-                height: 8,
-                borderRadius: 6,
-                overflow: "hidden",
-                marginTop: 4,
+                fontWeight: 500,
+                margin: "0 0 18px 0",
+                fontSize: "1.1rem",
+                textAlign: "center",
               }}
             >
+              Card {current} of {total}
               <div
                 style={{
-                  background: "#0099ff",
-                  width: `${(current / total) * 100}%`,
-                  height: "100%",
-                  transition: "width 0.3s",
+                  background: "var(--pale-blue)",
+                  height: 9,
+                  borderRadius: 6,
+                  margin: "6px auto 0 auto",
+                  width: 200,
+                  position: "relative",
                 }}
-              />
+              >
+                <div
+                  style={{
+                    background: "#0099ff",
+                    width: `${(current / total) * 100}%`,
+                    height: "100%",
+                    borderRadius: 6,
+                    transition: "width 0.3s",
+                  }}
+                />
+              </div>
+              <div style={{ marginTop: 5, fontSize: "0.98em", color: "#555" }}>
+                Completed: {completed.length}
+              </div>
             </div>
-            <div style={{ marginTop: 4, fontSize: "0.95em", color: "#666" }}>
-              Completed: {completed.length}
+            <div
+              style={{
+                background: "#fff",
+                border: "1px solid #ccc",
+                borderRadius: 16,
+                padding: 28,
+                minHeight: 110,
+                minWidth: 330,
+                maxWidth: 370,
+                marginBottom: 20,
+                boxShadow: "0 4px 14px 0 rgba(150,140,255,0.04)",
+                fontSize: 21,
+                textAlign: "center",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+              }}
+            >
+              <span style={{ fontWeight: 700 }}>Q:</span> {card.question}
+              {showAnswer && (
+                <div style={{ marginTop: 18, fontSize: 20 }}>
+                  <span style={{ fontWeight: 600 }}>A:</span> {card.answer}
+                </div>
+              )}
             </div>
-          </div>
+            {/* All buttons in a row */}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                justifyContent: "center",
+                gap: 18,
+                marginBottom: 14,
+              }}
+            >
+              <button
+                className="button-blue"
+                onClick={handlePrev}
+                disabled={total <= 1}
+              >
+                Previous
+              </button>
+              <button
+                className="button-blue"
+                onClick={handleNext}
+                disabled={total <= 1}
+              >
+                Next
+              </button>
+              <button
+                className="button-red"
+                onClick={() => setShowAnswer((s) => !s)}
+                style={{ minWidth: 120 }}
+              >
+                {showAnswer ? "Hide Answer" : "Show Answer"}
+              </button>
+              <button
+                className="button-blue"
+                onClick={markAsCompleted}
+                disabled={completed.includes(cardId)}
+                style={{ minWidth: 120 }}
+              >
+                {completed.includes(cardId) ? "Completed" : "Mark as Completed"}
+              </button>
+            </div>
+          </>
+        ) : (
           <div
             style={{
-              border: "1px solid #ccc",
-              borderRadius: 8,
-              padding: 24,
-              minHeight: 120,
-              marginBottom: 16,
+              background: "#fff",
+              borderRadius: 14,
+              padding: 32,
+              textAlign: "center",
+              color: "#666",
+              fontSize: 18,
             }}
           >
-            <b>Q:</b> {card.question}
-            <br />
-            {showAnswer && (
-              <>
-                <b>A:</b> {card.answer}
-              </>
-            )}
+            No flashcards in selected section(s).
           </div>
-          <button onClick={() => setShowAnswer((s) => !s)}>
-            {showAnswer ? "Hide Answer" : "Show Answer"}
-          </button>
+        )}
+        {/* Return button */}
+        <div style={{ marginTop: 34 }}>
           <button
-            onClick={markAsCompleted}
-            disabled={completed.includes(cardId)}
-            style={{ marginLeft: 8 }}
+            className="button-red"
+            style={{ width: 210 }}
+            onClick={() => navigate("/dashboard")}
           >
-            {completed.includes(cardId) ? "Completed" : "Mark as Completed"}
+            Back to Dashboard
           </button>
-          <div style={{ marginTop: 16 }}>
-            <button onClick={handlePrev} disabled={total <= 1}>
-              Previous
-            </button>
-            <button
-              onClick={handleNext}
-              disabled={total <= 1}
-              style={{ marginLeft: 8 }}
-            >
-              Next
-            </button>
-          </div>
-        </>
-      ) : (
-        <div>No flashcards in selected section(s).</div>
-      )}
-
-      <div style={{ marginTop: 32 }}>
-        <button onClick={() => navigate("/dashboard")}>
-          Back to Dashboard
-        </button>
+        </div>
       </div>
     </div>
   );

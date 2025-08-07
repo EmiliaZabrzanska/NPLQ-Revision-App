@@ -6,11 +6,12 @@ import {
   Navigate,
 } from "react-router-dom";
 import FrontPage from "./FrontPage";
-import AuthForm from "./AuthForm";
+import Login from "./Login";
 import Dashboard from "./Dashboard";
 import AdminPanel from "./AdminPanel";
 import Flashcards from "./Flashcards";
 import Quizzes from "./Quizzes";
+import AdminLogin from "./AdminLogin";
 
 function ProtectedRoute({ children, adminOnly = false }) {
   const user = JSON.parse(localStorage.getItem("user"));
@@ -24,7 +25,8 @@ export default function App() {
     <Router>
       <Routes>
         <Route path="/" element={<FrontPage />} />
-        <Route path="/login" element={<AuthForm />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/adminlogin" element={<AdminLogin />} />{" "}
         <Route
           path="/dashboard"
           element={
@@ -57,7 +59,6 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-        {/* Add more routes as needed */}
       </Routes>
     </Router>
   );
