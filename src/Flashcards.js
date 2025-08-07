@@ -130,7 +130,7 @@ export default function Flashcards() {
     <div
       style={{
         minHeight: "100vh",
-        background: "var(--pale-red)",
+        background: "#fff",
         fontFamily: "'Source Sans Pro', Arial, sans-serif",
         display: "flex",
       }}
@@ -221,7 +221,7 @@ export default function Flashcards() {
         {/* Flashcard Box with Q, Question, and Answer (if revealed) */}
         <div
           style={{
-            background: "#fff",
+            background: "var(--pale-red)",
             border: "1px solid #ccc",
             borderRadius: 20,
             minHeight: 170,
@@ -290,12 +290,12 @@ export default function Flashcards() {
             Next
           </button>
           <button
-            className="button-red"
+            className="button-blue"
             style={{
-              width: 170,
+              width: 190,
               fontWeight: 700,
               fontSize: 17,
-              background: showAnswer ? "var(--pale-blue)" : "var(--pale-red)",
+              background: showAnswer ? "var(--pale-blue)" : "var(--pale-blue)",
             }}
             onClick={() => setShowAnswer((a) => !a)}
           >

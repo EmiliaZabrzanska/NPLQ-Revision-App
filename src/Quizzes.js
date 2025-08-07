@@ -310,7 +310,7 @@ export default function Quizzes() {
     <div
       style={{
         minHeight: "100vh",
-        background: "var(--pale-red)",
+        background: "#fff",
         fontFamily: "'Source Sans Pro', Arial, sans-serif",
         display: "flex",
       }}
@@ -400,7 +400,7 @@ export default function Quizzes() {
             <form
               onSubmit={handleSubmit}
               style={{
-                background: "#fff",
+                background: "var(--pale-red)",
                 border: "1px solid #ccc",
                 borderRadius: 16,
                 padding: 28,
@@ -458,7 +458,7 @@ export default function Quizzes() {
                     padding: 7,
                     borderRadius: 8,
                     border: "1px solid #bacffe",
-                    background: "var(--pale-blue)",
+                    background: "#fff",
                   }}
                   type="text"
                   value={userAnswer}
@@ -493,7 +493,7 @@ export default function Quizzes() {
                                   {...provided.draggableProps}
                                   {...provided.dragHandleProps}
                                   style={{
-                                    background: "var(--pale-blue)",
+                                    background: "#fff",
                                     padding: 13,
                                     borderRadius: 8,
                                     fontSize: 17,
@@ -577,7 +577,7 @@ export default function Quizzes() {
                                     {...provided.draggableProps}
                                     {...provided.dragHandleProps}
                                     style={{
-                                      background: "var(--pale-blue)",
+                                      background: "#fff",
                                       borderRadius: 7,
                                       fontSize: 17,
                                       minHeight: 64,
@@ -643,7 +643,7 @@ export default function Quizzes() {
                 Submit Answer
               </button>
               <button
-                className="button-red"
+                className="button-blue"
                 type="button"
                 onClick={handleNext}
                 style={{ minWidth: 120 }}
