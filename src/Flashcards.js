@@ -40,88 +40,26 @@ const flashcardSections = {
 };
 
 const allSections = Object.keys(flashcardSections);
+const CARD_WIDTH = 700;
 
 export default function Flashcards() {
   const navigate = useNavigate();
   const userObj = JSON.parse(localStorage.getItem("user") || "{}");
   const username = userObj.username;
-  useEffect(() => {
-    if (!username) navigate("/login");
-  }, [username, navigate]);
-
   const [selectedSections, setSelectedSections] = useState(allSections);
+  const [completed, setCompleted] = useState([]);
   const [index, setIndex] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
-  const [completed, setCompleted] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Timer for total time spent
-  useEffect(() => {
-    if (!username) return;
-    let timer = setInterval(async () => {
-      const ref = doc(db, "users", username, "progress", "totals");
-      const snapshot = await getDoc(ref);
-      const prev = snapshot.exists() ? snapshot.data().secondsSpent || 0 : 0;
-      await setDoc(ref, { secondsSpent: prev + 1 }, { merge: true });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [username]);
-
-  // Helper to make cardId unique per section+index
-  const getCardId = (section, cardIndex) => `${section}-${cardIndex}`;
-
-  // Collect all cards currently selected, with section info
-  const selectedCards = [];
-  selectedSections.forEach((section) => {
-    flashcardSections[section].forEach((card, i) => {
-      selectedCards.push({ ...card, section, cardIndex: i });
-    });
-  });
-
+  // Collect all selected flashcards
+  const selectedCards = selectedSections
+    .map((section) => flashcardSections[section])
+    .flat();
   const total = selectedCards.length;
-  const current = index + 1;
   const card = selectedCards[index];
-  const cardId = card ? getCardId(card.section, card.cardIndex) : "";
 
-  // Per-section progress calculation
-  const sectionProgress = {};
-  allSections.forEach((section) => {
-    const totalCards = flashcardSections[section].length;
-    const completedInSection = flashcardSections[section].filter((c, i) =>
-      completed.includes(getCardId(section, i))
-    ).length;
-    sectionProgress[section] = {
-      total: totalCards,
-      completed: completedInSection,
-    };
-  });
-
-  // Load completed from Firestore
-  useEffect(() => {
-    if (!username) return;
-    setLoading(true);
-    const fetchProgress = async () => {
-      try {
-        const ref = doc(db, "users", username, "progress", "flashcards");
-        const snapshot = await getDoc(ref);
-        if (snapshot.exists()) {
-          setCompleted(snapshot.data().completed || []);
-        } else {
-          setCompleted([]);
-        }
-      } catch (err) {
-        setCompleted([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProgress();
-    setIndex(0);
-    setShowAnswer(false);
-    // eslint-disable-next-line
-  }, [username, selectedSections]);
-
-  // Section selector handler
+  // Section change handler
   const handleSectionChange = (e) => {
     const { value, checked } = e.target;
     setShowAnswer(false);
@@ -131,32 +69,52 @@ export default function Flashcards() {
         prev.includes(value) ? prev : [...prev, value]
       );
     } else {
-      setSelectedSections((prev) =>
-        prev.filter((section) => section !== value)
-      );
+      setSelectedSections((prev) => prev.filter((s) => s !== value));
     }
   };
 
-  // Mark card as completed and update Firestore
+  // Load progress
+  useEffect(() => {
+    if (!username) {
+      navigate("/login");
+      return;
+    }
+    setLoading(true);
+    async function fetchProgress() {
+      try {
+        const ref = doc(db, "users", username, "progress", "flashcards");
+        const snap = await getDoc(ref);
+        setCompleted(snap.exists() ? snap.data().completed || [] : []);
+      } catch {
+        setCompleted([]);
+      }
+      setLoading(false);
+    }
+    fetchProgress();
+    // eslint-disable-next-line
+  }, [username, selectedSections]);
+
+  // Save completed flashcards
   const markAsCompleted = async () => {
-    if (!username || !cardId || completed.includes(cardId)) return;
-    const updated = [...completed, cardId];
+    if (!card) return;
+    const updated = completed.includes(card.id)
+      ? completed
+      : [...completed, card.id];
     setCompleted(updated);
-    try {
-      const ref = doc(db, "users", username, "progress", "flashcards");
-      await setDoc(ref, { completed: updated }, { merge: true });
-    } catch (err) {
-      // ignore
-    }
+    const ref = doc(db, "users", username, "progress", "flashcards");
+    await setDoc(ref, { completed: updated }, { merge: true });
   };
 
-  const handleNext = () => {
+  // Go to previous card, reset showAnswer
+  const goPrevious = () => {
+    setIndex((prev) => (prev === 0 ? total - 1 : prev - 1));
     setShowAnswer(false);
-    setIndex((prev) => (prev + 1) % total);
   };
-  const handlePrev = () => {
+
+  // Go to next card, reset showAnswer
+  const goNext = () => {
+    setIndex((prev) => (prev + 1) % total);
     setShowAnswer(false);
-    setIndex((prev) => (prev - 1 + total) % total);
   };
 
   if (loading)
@@ -212,45 +170,6 @@ export default function Flashcards() {
           ))}
         </div>
       </div>
-      {/* Top right: progress bars */}
-      <div
-        style={{
-          position: "absolute",
-          right: 28,
-          top: 30,
-          minWidth: 220,
-          zIndex: 5,
-        }}
-      >
-        {allSections.map((section) => {
-          const p = sectionProgress[section];
-          const percent = Math.round((p.completed / p.total) * 100);
-          return (
-            <div key={section} style={{ marginBottom: 14 }}>
-              <div style={{ fontSize: "0.98em", marginBottom: 2 }}>
-                {section}: {p.completed} / {p.total}
-              </div>
-              <div
-                style={{
-                  background: "var(--pale-blue)",
-                  height: 10,
-                  borderRadius: 6,
-                }}
-              >
-                <div
-                  style={{
-                    background: "#6274ce",
-                    width: `${percent}%`,
-                    height: "100%",
-                    borderRadius: 6,
-                    transition: "width 0.3s",
-                  }}
-                />
-              </div>
-            </div>
-          );
-        })}
-      </div>
       {/* Main content */}
       <div
         style={{
@@ -261,124 +180,139 @@ export default function Flashcards() {
           justifyContent: "center",
         }}
       >
-        {total > 0 && card ? (
-          <>
-            {/* Progress bar and count for selected cards */}
-            <div
-              style={{
-                fontWeight: 500,
-                margin: "0 0 18px 0",
-                fontSize: "1.1rem",
-                textAlign: "center",
-              }}
-            >
-              Card {current} of {total}
-              <div
-                style={{
-                  background: "var(--pale-blue)",
-                  height: 9,
-                  borderRadius: 6,
-                  margin: "6px auto 0 auto",
-                  width: 200,
-                  position: "relative",
-                }}
-              >
-                <div
-                  style={{
-                    background: "#0099ff",
-                    width: `${(current / total) * 100}%`,
-                    height: "100%",
-                    borderRadius: 6,
-                    transition: "width 0.3s",
-                  }}
-                />
-              </div>
-              <div style={{ marginTop: 5, fontSize: "0.98em", color: "#555" }}>
-                Completed: {completed.length}
-              </div>
-            </div>
-            <div
-              style={{
-                background: "#fff",
-                border: "1px solid #ccc",
-                borderRadius: 16,
-                padding: 28,
-                minHeight: 110,
-                minWidth: 330,
-                maxWidth: 370,
-                marginBottom: 20,
-                boxShadow: "0 4px 14px 0 rgba(150,140,255,0.04)",
-                fontSize: 21,
-                textAlign: "center",
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "center",
-              }}
-            >
-              <span style={{ fontWeight: 700 }}>Q:</span> {card.question}
-              {showAnswer && (
-                <div style={{ marginTop: 18, fontSize: 20 }}>
-                  <span style={{ fontWeight: 600 }}>A:</span> {card.answer}
-                </div>
-              )}
-            </div>
-            {/* All buttons in a row */}
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "row",
-                justifyContent: "center",
-                gap: 18,
-                marginBottom: 14,
-              }}
-            >
-              <button
-                className="button-blue"
-                onClick={handlePrev}
-                disabled={total <= 1}
-              >
-                Previous
-              </button>
-              <button
-                className="button-blue"
-                onClick={handleNext}
-                disabled={total <= 1}
-              >
-                Next
-              </button>
-              <button
-                className="button-red"
-                onClick={() => setShowAnswer((s) => !s)}
-                style={{ minWidth: 120 }}
-              >
-                {showAnswer ? "Hide Answer" : "Show Answer"}
-              </button>
-              <button
-                className="button-blue"
-                onClick={markAsCompleted}
-                disabled={completed.includes(cardId)}
-                style={{ minWidth: 120 }}
-              >
-                {completed.includes(cardId) ? "Completed" : "Mark as Completed"}
-              </button>
-            </div>
-          </>
-        ) : (
+        {/* Progress */}
+        <div
+          style={{
+            marginTop: 22,
+            marginBottom: 12,
+            width: CARD_WIDTH,
+            maxWidth: "90vw",
+            textAlign: "center",
+          }}
+        >
+          <div style={{ fontSize: 18, marginBottom: 4 }}>
+            Card {index + 1} of {total}
+          </div>
           <div
             style={{
-              background: "#fff",
-              borderRadius: 14,
-              padding: 32,
-              textAlign: "center",
-              color: "#666",
-              fontSize: 18,
+              background: "var(--pale-blue)",
+              height: 8,
+              borderRadius: 6,
+              width: 260,
+              margin: "6px auto 0 auto",
+              position: "relative",
             }}
           >
-            No flashcards in selected section(s).
+            <div
+              style={{
+                background: "#0099ff",
+                width: `${((index + 1) / total) * 100}%`,
+                height: "100%",
+                borderRadius: 6,
+                transition: "width 0.3s",
+              }}
+            />
           </div>
-        )}
+          <div style={{ marginTop: 5, fontSize: "1em", color: "#555" }}>
+            Completed: {completed.length}
+          </div>
+        </div>
+
+        {/* Flashcard Box with Q, Question, and Answer (if revealed) */}
+        <div
+          style={{
+            background: "#fff",
+            border: "1px solid #ccc",
+            borderRadius: 20,
+            minHeight: 170,
+            width: CARD_WIDTH,
+            maxWidth: "95vw",
+            boxShadow: "0 4px 14px 0 rgba(150,140,255,0.05)",
+            margin: "16px 0 28px 0",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: 24,
+            fontWeight: 500,
+            flexDirection: "column",
+          }}
+        >
+          {/* Q: and question on one line */}
+          <span>
+            <span style={{ fontWeight: 700, fontSize: 24, marginRight: 12 }}>
+              Q:
+            </span>
+            {card?.question}
+          </span>
+          {/* Show answer below, but inside the card box */}
+          {showAnswer && (
+            <div
+              style={{
+                background: "var(--pale-blue)",
+                borderRadius: 8,
+                marginTop: 18,
+                padding: "14px 22px",
+                fontSize: 21,
+                fontWeight: 500,
+                color: "#222",
+                display: "inline-block",
+              }}
+            >
+              <span style={{ fontWeight: 700, marginRight: 8 }}>A:</span>
+              {card?.answer}
+            </div>
+          )}
+        </div>
+
+        {/* Buttons Row */}
+        <div
+          style={{
+            width: CARD_WIDTH,
+            maxWidth: "95vw",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 24,
+          }}
+        >
+          <button
+            className="button-blue"
+            style={{ width: 140, fontWeight: 700, fontSize: 17 }}
+            onClick={goPrevious}
+          >
+            Previous
+          </button>
+          <button
+            className="button-blue"
+            style={{ width: 140, fontWeight: 700, fontSize: 17 }}
+            onClick={goNext}
+          >
+            Next
+          </button>
+          <button
+            className="button-red"
+            style={{
+              width: 170,
+              fontWeight: 700,
+              fontSize: 17,
+              background: showAnswer ? "var(--pale-blue)" : "var(--pale-red)",
+            }}
+            onClick={() => setShowAnswer((a) => !a)}
+          >
+            {showAnswer ? "Hide Answer" : "Show Answer"}
+          </button>
+          <button
+            className="button-blue"
+            style={{ width: 190, fontWeight: 700, fontSize: 17 }}
+            onClick={markAsCompleted}
+            disabled={completed.includes(card?.id)}
+          >
+            Mark as Completed
+          </button>
+        </div>
+
         {/* Return button */}
-        <div style={{ marginTop: 34 }}>
+        <div style={{ marginTop: 38 }}>
           <button
             className="button-red"
             style={{ width: 210 }}
