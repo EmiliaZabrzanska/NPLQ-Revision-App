@@ -10,6 +10,7 @@ export default function FrontPage() {
       className="center-container"
       style={{ height: "100vh", background: "#fff" }}
     >
+      {/* ... your main content ... */}
       <div style={{ marginBottom: 40 }}>
         <h1
           style={{
@@ -38,6 +39,24 @@ export default function FrontPage() {
           Admin Login
         </button>
       </div>
+      {/* --- Footer tag --- */}
+      <footer
+        style={{
+          position: "fixed",
+          bottom: 10,
+          left: 0,
+          width: "100%",
+          textAlign: "center",
+          fontSize: 15,
+          color: "#888",
+          letterSpacing: 1,
+          zIndex: 10,
+          pointerEvents: "none",
+          userSelect: "none",
+        }}
+      >
+        Created by Emilia Zabrzanska, August 2025
+      </footer>
     </div>
   );
 }
