@@ -24,14 +24,11 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [resetting, setResetting] = useState(false);
 
-  // NEW: Read user object and username from localStorage
-  const user = JSON.parse(localStorage.getItem("user"));
-  const username = user?.username;
+  const userObj = JSON.parse(localStorage.getItem("user") || "{}");
+  const username = userObj.username;
 
   useEffect(() => {
-    if (!username) {
-      navigate("/login");
-    }
+    if (!username) navigate("/login");
   }, [username, navigate]);
 
   useEffect(() => {
@@ -65,9 +62,9 @@ export default function Dashboard() {
     fetchAll();
   }, [username]);
 
-  // NEW: Remove only the user object from localStorage
   const handleLogout = () => {
     localStorage.removeItem("user");
+    localStorage.removeItem("username");
     navigate("/");
   };
 
@@ -105,20 +102,33 @@ export default function Dashboard() {
     );
 
   return (
-    <div style={{ minHeight: "100vh", background: "#fff" }}>
-      {/* Top right: user info and log out */}
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "#fff",
+        boxSizing: "border-box",
+        padding: "32px 0 0 0",
+        overflowX: "hidden",
+      }}
+    >
+      {/* Top row */}
       <div
         style={{
+          maxWidth: 1050,
+          margin: "0 auto",
           width: "100%",
-          display: "flex",
-          justifyContent: "flex-end",
-          alignItems: "center",
-          padding: "32px 32px 0 32px",
           position: "relative",
-          minHeight: 60,
+          minHeight: 80,
         }}
       >
-        <div style={{ textAlign: "right" }}>
+        <div
+          style={{
+            position: "absolute",
+            right: 0,
+            top: 12,
+            textAlign: "right",
+          }}
+        >
           <div style={{ fontSize: 16, color: "#222", marginBottom: 6 }}>
             <b>Logged in as:</b> {username}
           </div>
@@ -131,41 +141,62 @@ export default function Dashboard() {
           </button>
         </div>
       </div>
-
-      {/* Centered header below */}
-      <h2
-        style={{
-          fontSize: "2.2rem",
-          fontWeight: 700,
-          color: "#222",
-          textAlign: "center",
-          margin: "24px 0 0 0",
-        }}
-      >
-        Welcome to your Dashboard!
-      </h2>
-      {/* Centered main content */}
+      {/* Main centered content */}
       <div
         style={{
+          maxWidth: 750,
+          margin: "0 auto",
+          width: "100%",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
+          padding: "0 12px",
         }}
       >
+        <h1
+          style={{
+            fontSize: "2.1rem",
+            fontWeight: 700,
+            color: "#222",
+            marginTop: 24,
+            marginBottom: 0,
+            textAlign: "center",
+          }}
+        >
+          Welcome to your Dashboard!
+        </h1>
         <div
           style={{
-            fontSize: "1.3rem",
+            fontSize: "1.25rem",
             fontWeight: 600,
-            margin: "24px 0 14px 0",
+            margin: "18px 0 18px 0",
             textAlign: "center",
           }}
         >
           Revision Progress
         </div>
-        <div style={{ display: "flex", gap: 40, marginBottom: 32 }}>
+        <div
+          style={{
+            display: "flex",
+            gap: 24,
+            flexWrap: "wrap",
+            justifyContent: "center",
+            width: "100%",
+            maxWidth: 600,
+            marginBottom: 32,
+          }}
+        >
           <div
             className="card"
-            style={{ background: "var(--pale-blue)", alignItems: "center" }}
+            style={{
+              background: "var(--pale-blue)",
+              alignItems: "center",
+              flex: "1 1 220px",
+              minWidth: 180,
+              maxWidth: 260,
+              margin: "0 0 16px 0",
+              boxSizing: "border-box",
+            }}
           >
             <div style={{ fontWeight: 600, marginBottom: 8 }}>
               Flashcards Completed
@@ -175,7 +206,7 @@ export default function Dashboard() {
             </div>
             <button
               className="button-red"
-              style={{ width: 200, marginTop: 8, background: "#fff" }}
+              style={{ width: "100%", marginTop: 8, background: "#fff" }}
               onClick={() => navigate("/flashcards")}
             >
               Start Revising Flashcards
@@ -183,7 +214,15 @@ export default function Dashboard() {
           </div>
           <div
             className="card"
-            style={{ background: "var(--pale-blue)", alignItems: "center" }}
+            style={{
+              background: "var(--pale-blue)",
+              alignItems: "center",
+              flex: "1 1 220px",
+              minWidth: 180,
+              maxWidth: 260,
+              margin: "0 0 16px 0",
+              boxSizing: "border-box",
+            }}
           >
             <div style={{ fontWeight: 600, marginBottom: 8 }}>
               Quizzes Completed
@@ -193,7 +232,7 @@ export default function Dashboard() {
             </div>
             <button
               className="button-red"
-              style={{ width: 200, marginTop: 8, background: "#fff" }}
+              style={{ width: "100%", marginTop: 8, background: "#fff" }}
               onClick={() => navigate("/quizzes")}
             >
               Start a Quiz
